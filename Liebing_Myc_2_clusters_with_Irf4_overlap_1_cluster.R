@@ -1,0 +1,35 @@
+library(dplyr)
+library(Seurat)
+library(patchwork)
+pbmc.data<-read.table("I:/LieBingData_counts and normalize count/RTLZ.counts.tsv",header = TRUE,sep = "\t",row.names = 1)
+pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k")
+#pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
+pbmc
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^mt-")
+VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3,pt.size = 0)
+#pbmc <- subset(pbmc, subset = nFeature_RNA > 0 & nFeature_RNA < 2500)
+#pbmc <- subset(pbmc, subset = nFeature_RNA > 0 & nFeature_RNA < 2500 & percent.mt == 0)
+pbmc <- NormalizeData(pbmc)
+#pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(pbmc)
+pbmc <- ScaleData(pbmc,vars.to.regress = "percent.mt")
+#pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+pbmc<-RunPCA(pbmc,features=all.genes)
+ElbowPlot(pbmc,ndims = 50)
+
+#pbmc <- JackStraw(pbmc, num.replicate = 100)
+#pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
+#JackStrawPlot(pbmc, dims = 1:20)
+
+pbmc <- FindNeighbors(pbmc, dims = 1:20,force.recalc = TRUE)
+pbmc <- FindClusters(pbmc, resolution = 0.8)
+#pbmc <- FindClusters(pbmc, resolution = seq(0,5.0,0.1), verbose=F)
+#pbmc@active.ident<-pbmc@meta.data$RNA_snn_res.0.5
+#names(pbmc@active.ident)<-colnames(pbmc)
+#pbmc@meta.data$seurat_clusters<-pbmc@meta.data$RNA_snn_res.0.5
+VlnPlot(pbmc,features = c("Myc","Irf4","Kdm6b"),pt.size = 0)
+pbmc<-RunTSNE(pbmc,dims = 1:20)
+pbmc<-RunUMAP(pbmc,dims = 1:20)
+DimPlot(pbmc, reduction = "umap",label = TRUE)
+DimPlot(pbmc, reduction = "tsne",label = TRUE)
+
